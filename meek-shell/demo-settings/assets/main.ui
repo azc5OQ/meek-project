@@ -1,0 +1,98 @@
+<!--
+  demo-settings main.ui - fake "Settings" app used as a third-party
+  Wayland client to validate Phase 2 of the compositor/shell pipeline.
+  Not part of meek-shell's real shell UI.
+-->
+<window>
+    <column class="page">
+
+        <!-- Header -->
+        <row class="header">
+            <label class="back-chevron" text="&lt;" />
+            <label class="title" text="Settings" />
+        </row>
+
+        <!-- Text-input test block. Pre-foot gating test: verifies the
+             meek_shell_v1.route_keyboard_key path reaches a foreign
+             Wayland client's wl_keyboard.key handler, translated
+             through xkbcommon, and lands in a text widget. If this
+             field doesn't accept the on-screen keyboard's keystrokes,
+             there is no point trying foot. -->
+        <column class="block">
+            <label class="section-header" text="Text input (route_keyboard_key test)" />
+            <input id="typing-test" class="text-field" placeholder="type here..." />
+        </column>
+
+        <!-- Connectivity block -->
+        <column class="block">
+            <label class="section-header" text="Connectivity" />
+            <row class="row" on_click="on_wifi_tap">
+                <label class="row-icon" text="W" />
+                <column class="row-text">
+                    <label class="row-primary"   text="Wi-Fi" />
+                    <label class="row-secondary" text="Not connected" />
+                </column>
+                <label class="row-chevron" text="&gt;" />
+            </row>
+            <row class="row" on_click="on_bluetooth_tap">
+                <label class="row-icon" text="B" />
+                <column class="row-text">
+                    <label class="row-primary"   text="Bluetooth" />
+                    <label class="row-secondary" text="Off" />
+                </column>
+                <label class="row-chevron" text="&gt;" />
+            </row>
+            <row class="row" on_click="on_airplane_tap">
+                <label class="row-icon" text="A" />
+                <column class="row-text">
+                    <label class="row-primary"   text="Airplane mode" />
+                    <label class="row-secondary" text="Disabled" />
+                </column>
+                <label class="row-chevron" text="&gt;" />
+            </row>
+        </column>
+
+        <!-- Device block -->
+        <column class="block">
+            <label class="section-header" text="Device" />
+            <row class="row" on_click="on_display_tap">
+                <label class="row-icon" text="D" />
+                <column class="row-text">
+                    <label class="row-primary"   text="Display" />
+                    <label class="row-secondary" text="Dark theme, 1080x2246" />
+                </column>
+                <label class="row-chevron" text="&gt;" />
+            </row>
+            <row class="row" on_click="on_sound_tap">
+                <label class="row-icon" text="S" />
+                <column class="row-text">
+                    <label class="row-primary"   text="Sound" />
+                    <label class="row-secondary" text="60%" />
+                </column>
+                <label class="row-chevron" text="&gt;" />
+            </row>
+            <row class="row" on_click="on_battery_tap">
+                <label class="row-icon" text="P" />
+                <column class="row-text">
+                    <label class="row-primary"   text="Battery" />
+                    <label class="row-secondary" text="87%, charging" />
+                </column>
+                <label class="row-chevron" text="&gt;" />
+            </row>
+        </column>
+
+        <!-- System block -->
+        <column class="block">
+            <label class="section-header" text="System" />
+            <row class="row" on_click="on_about_tap">
+                <label class="row-icon" text="i" />
+                <column class="row-text">
+                    <label class="row-primary"   text="About this device" />
+                    <label class="row-secondary" text="Poco F1 · pmOS" />
+                </column>
+                <label class="row-chevron" text="&gt;" />
+            </row>
+        </column>
+
+    </column>
+</window>

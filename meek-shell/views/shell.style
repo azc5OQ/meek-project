@@ -1,0 +1,932 @@
+/*
+    meek-shell/views/shell.style - stress-test theme.
+
+    Dark theme tuned for phone-portrait (720x1280 base). Exercises:
+    gradients (vertical, diagonal), shadows, radius, padding/margin,
+    nested columns + rows, different font weights, blur (backdrop),
+    checkbox/radio/slider/select/colorpicker/input/textarea, and
+    :hover / :active nested state selectors.
+
+    See meek-ui/session/memory/reference_style_property_names.md
+    for the exact property-name grammar.
+*/
+
+window.shell-root
+{
+    /*
+       Bright wallpaper background. wallpaper2.jpg lives in
+       SHELL_ASSET_DIR (staged to assets/ at build time). The
+       widget_image-based bg-image path resolves bare names against
+       parser_xml__base_dir which is the assets dir, so referencing
+       by basename works. background-size: cover scales the image
+       to fill the panel without distortion.
+    */
+    background-image: wallpaper2.jpg;
+    background-size:  cover;
+    font-color:       #ffffff;
+    font-family:      Roboto-Regular;
+    font-size:        16px;
+    padding:          0px;
+}
+
+.shell-column
+{
+    width:  100%;
+    height: 100%;
+    gap:    0px;
+}
+
+/* ===== status bar ============================================== */
+
+/*
+   Status bar. Modern phone home-screen feel: time top-left,
+   signal+battery cluster top-right, white bold text on a thin
+   semi-transparent gradient backdrop so the labels stay legible
+   over light wallpapers without imposing a hard bar.
+
+   The gradient fades from a faint black tint at the top to
+   fully transparent below, so the bar reads as "darken the
+   wallpaper a touch behind the text" rather than an opaque
+   chrome bar.
+*/
+.status-bar
+{
+    width:               100%;
+    height:              48px;
+    padding-left:        24px;
+    padding-right:       24px;
+    vertical-alignment:  center;
+    gap:                 10px;
+    background-gradient: #00000050 #00000000 vertical;
+}
+
+.status-time
+{
+    font-size:   20px;
+    font-color:  #ffffff;
+    font-family: Roboto-Bold;
+}
+
+.status-spacer
+{
+    /* Push the right-side cluster to the right edge. Grid has its
+       own padding, but the bar's padding-left/right takes care of
+       the inset, so a full-width spacer here works cleanly. */
+    width:  100%;
+}
+
+.status-signal
+{
+    font-size:   16px;
+    font-color:  #ffffff;
+    font-family: Roboto-Medium;
+}
+
+.status-battery
+{
+    font-size:   18px;
+    font-color:  #ffffff;
+    font-family: Roboto-Bold;
+}
+
+/* ===== main area =============================================== */
+
+.main-area
+{
+    width:            100%;
+    height:           100%;
+    padding:          18px;
+    gap:              16px;
+    background-color: #08080c;
+}
+
+/*
+    switcher-area: replaces .main-area for the stripped-down shell.
+    Same fill-the-space column but explicitly 100% height so the
+    cards-deck row inside can stretch; .cards-deck itself remains
+    auto-height for now (grows with tile count).
+*/
+.switcher-area
+{
+    width:            100%;
+    height:           100%;
+    padding:          18px;
+    gap:              12px;
+    background-color: #08080c;
+}
+
+/* ===== section heading ========================================= */
+
+.section-label
+{
+    font-size:   13px;
+    font-color:  #9ca3af;
+    font-family: Roboto-Medium;
+    margin-top:  4px;
+    margin-left: 4px;
+}
+
+.section-label-light
+{
+    font-size:   13px;
+    font-color:  #d4d4d8;
+    font-family: Roboto-Medium;
+    margin-bottom: 8px;
+}
+
+/* ===== hero card (diagonal gradient) =========================== */
+
+.hero-card
+{
+    width:               100%;
+    padding:             22px;
+    radius:              18px;
+    background-gradient: #312e81 #7c3aed diagonal-tl;
+    box-shadow:          0 6 22 #00000080;
+    gap:                 6px;
+}
+
+.hero-title
+{
+    font-size:   26px;
+    font-color:  #ffffff;
+    font-family: Roboto-Bold;
+}
+
+.hero-subtitle
+{
+    font-size:  14px;
+    font-color: #e0e7ff;
+}
+
+.hero-note
+{
+    font-size:  12px;
+    font-color: #c7d2fe;
+    margin-top: 10px;
+}
+
+/* ===== stats row =============================================== */
+
+.stats-row
+{
+    width:  100%;
+    height: 78px;
+    gap:    10px;
+}
+
+.stat-card
+{
+    width:              100%;
+    height:             100%;
+    radius:             12px;
+    padding:            10px;
+    vertical-alignment: center;
+    gap:                2px;
+    box-shadow:         0 2 8 #00000060;
+}
+
+.stat-value
+{
+    font-size:   22px;
+    font-family: Roboto-Bold;
+    font-color:  #ffffff;
+}
+
+.stat-label
+{
+    font-size:  11px;
+    font-color: #cbd5e1;
+}
+
+.stat-steps   { background-gradient: #1a3a52 #0e2337 vertical; }
+.stat-battery { background-gradient: #1a4528 #0b2316 vertical; }
+.stat-temp    { background-gradient: #452a1a #23150b vertical; }
+
+/* ===== quick toggle buttons ==================================== */
+
+.quick-toggle-row
+{
+    width:  100%;
+    height: 52px;
+    gap:    10px;
+}
+
+.quick-toggle
+{
+    width:            100%;
+    height:           100%;
+    radius:           12px;
+    font-size:        13px;
+    font-family:      Roboto-Medium;
+    font-color:       #e5e7eb;
+    background-color: #1c1d24;
+
+    :hover
+    {
+        background-color: #262732;
+    }
+    :active
+    {
+        background-color: #323341;
+    }
+}
+
+.quick-toggle-on
+{
+    background-color: #2563eb;
+    font-color:       #ffffff;
+
+    :hover
+    {
+        background-color: #3b82f6;
+    }
+    :active
+    {
+        background-color: #1d4ed8;
+    }
+}
+
+/* ===== settings card (checkbox/radio/slider/select) ============ */
+
+.settings-card
+{
+    width:            100%;
+    background-color: #121319;
+    radius:           14px;
+    padding:          14px;
+    gap:              10px;
+    box-shadow:       0 3 12 #00000060;
+}
+
+.settings-row
+{
+    width: 100%;
+    gap:   10px;
+}
+
+.radio-row
+{
+    gap: 18px;
+}
+
+.settings-sublabel
+{
+    font-size:   12px;
+    font-color:  #9ca3af;
+    font-family: Roboto-Medium;
+    margin-top:  8px;
+}
+
+.setting-check
+{
+    font-size:  13px;
+    font-color: #e5e7eb;
+}
+
+.setting-select
+{
+    width:            100%;
+    height:           34px;
+    radius:           8px;
+    background-color: #1c1d24;
+    font-size:        13px;
+    font-color:       #e5e7eb;
+    padding-left:     10px;
+    padding-right:    10px;
+
+    :hover
+    {
+        background-color: #262732;
+    }
+}
+
+.setting-slider
+{
+    width:  100%;
+    height: 20px;
+}
+
+/* ===== music card ============================================== */
+
+.music-card
+{
+    width:            100%;
+    padding:          16px;
+    radius:           16px;
+    background-color: #111318;
+    box-shadow:       0 4 16 #00000060;
+    gap:              12px;
+}
+
+.music-header
+{
+    width: 100%;
+    gap:   12px;
+}
+
+.music-album
+{
+    width:                64px;
+    height:               64px;
+    radius:               10px;
+    background-gradient:  #db2777 #7c3aed diagonal-tl;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+    box-shadow:           0 2 10 #00000080;
+}
+
+.music-album-text
+{
+    font-size:   18px;
+    font-family: Roboto-Bold;
+    font-color:  #ffffff;
+}
+
+.music-meta
+{
+    width:              100%;
+    height:             64px;
+    vertical-alignment: center;
+    gap:                4px;
+}
+
+.music-title
+{
+    font-size:   16px;
+    font-family: Roboto-Medium;
+    font-color:  #ffffff;
+}
+
+.music-artist
+{
+    font-size:  12px;
+    font-color: #9ca3af;
+}
+
+.music-progress
+{
+    width:  100%;
+    height: 4px;
+}
+
+.music-controls
+{
+    width:                100%;
+    height:               42px;
+    gap:                  10px;
+    horizontal-alignment: center;
+}
+
+.music-btn
+{
+    width:            100%;
+    height:           100%;
+    radius:           10px;
+    background-color: #1c1d24;
+    font-color:       #e5e7eb;
+    font-size:        14px;
+    font-family:      Roboto-Medium;
+
+    :hover
+    {
+        background-color: #262732;
+    }
+    :active
+    {
+        background-color: #32334a;
+    }
+}
+
+.music-btn-play
+{
+    background-color: #7c3aed;
+    font-color:       #ffffff;
+
+    :hover
+    {
+        background-color: #8b5cf6;
+    }
+    :active
+    {
+        background-color: #6d28d9;
+    }
+}
+
+/* ===== accent color card (glass / blur) ======================== */
+
+.accent-card
+{
+    width:            100%;
+    padding:          14px;
+    radius:           14px;
+    background-color: #2a2a3cb0;
+    blur:             12;
+    box-shadow:       0 4 18 #00000060;
+    gap:              8px;
+}
+
+.accent-picker
+{
+    width:  100%;
+    height: 140px;
+}
+
+/* ===== text-entry card ========================================= */
+
+.text-card
+{
+    width:            100%;
+    padding:          14px;
+    radius:           14px;
+    background-color: #121319;
+    gap:              10px;
+    box-shadow:       0 3 12 #00000060;
+}
+
+.shell-input
+{
+    width:            100%;
+    height:           36px;
+    radius:           8px;
+    background-color: #1c1d24;
+    font-size:        14px;
+    font-color:       #e5e7eb;
+    padding-left:     12px;
+    padding-right:    12px;
+
+    :hover
+    {
+        background-color: #24252f;
+    }
+}
+
+.shell-textarea
+{
+    width:            100%;
+    height:           68px;
+    radius:           8px;
+    background-color: #1c1d24;
+    font-size:        13px;
+    font-color:       #e5e7eb;
+    padding:          10px;
+}
+
+/* ===== app grid (home, default-visible) ======================== */
+/*
+    The home view: a <collection layout="grid" columns="4"> filled
+    at runtime by main.c::_populate_app_grid() with one
+    <column class="launcher-tile"> per detected .desktop file.
+    Each tile = a placeholder letter "icon" + the app name.
+*/
+
+/*
+   App grid. Bright phone-shell style: 4 columns, transparent
+   tiles, icons sit directly on the wallpaper. Compact spacing
+   between rows so 16-20 apps fit on a portrait panel without
+   scrolling.
+*/
+.app-grid
+{
+    width:            100%;
+    height:           100%;
+    layout:           grid;
+    columns:          4;
+    item-height:      230px;
+    gap:              28px;
+    padding-left:     24px;
+    padding-right:    24px;
+    padding-top:      24px;
+    padding-bottom:   28px;
+}
+
+/*
+   Each tile is the icon + label container. No bg / no shadow /
+   no border -- the tile frame is invisible; only icon and label
+   render. horizontal/vertical alignment center so the icon sits
+   middle-top with the label tucked underneath.
+*/
+.launcher-tile
+{
+    width:                100%;
+    height:               240px;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+    gap:                  12px;
+    padding:              8px;
+    /*
+       Font-size declared on the TILE so the label-child inherits.
+       Pressing any descendant walks state up to the tile (state
+       chain), the inherited font_size flips, and the label's own
+       transition slot animates the inherited value smoothly. The
+       launcher-label rule below carries the transition declaration
+       only -- no font-size of its own, so inheritance kicks in.
+    */
+    font-size:            24px;
+    font-color:           #ffffff;
+    transition:           all 130 ease-out;
+
+    :active
+    {
+        font-size:  20px;
+        font-color: #b8b8c4;
+    }
+}
+
+/*
+   Letter fallback (when icon_resolver misses). White-on-dark
+   square; the dark fill substitutes for the missing PNG so the
+   tile still looks like an icon, not naked text floating on
+   the wallpaper.
+*/
+.launcher-icon
+{
+    width:                160px;
+    height:               160px;
+    font-size:            80px;
+    font-family:          Roboto-Bold;
+    font-color:           #ffffff;
+    background-color:     #1c1d24cc;
+    radius:               36px;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+}
+
+/*
+   PNG-icon wrapper frame. main.c builds a <column> with this
+   class when icon_resolver hits a PNG; the column carries the
+   per-tile sampled background color (set programmatically) +
+   the rounded-square shape. Inner <image class="launcher-icon-img">
+   is a notch smaller so the colored frame shows around it as a
+   visible halo.
+
+   :active darkens the frame on press (classic phone tap-feedback)
+   via opacity. Works without per-tile config since opacity
+   cascades.
+*/
+/*
+   Press-feedback eye-candy. Modern phone behaviour:
+     - On press, the icon scales DOWN ~15% (tile feels tactile).
+     - The label font shrinks slightly to match.
+     - Everything darkens (not lightens -- opacity:0.7 made the
+       wallpaper bleed through and read as washed-out).
+     - 130 ms ease-out transition both directions, smooth animation
+       in and out via meek-ui's transition mechanism. Animator
+       gates layout-affecting interpolation (size_w/size_h/
+       font_size) on both endpoints having the has_* flag set, so
+       a transient undefined-state can't corrupt layout.
+   Hit-test lands on whichever inner node sits deepest under the
+   finger; with state-chain propagation in scene_input, :active
+   fires on the frame, image, AND label simultaneously.
+*/
+.launcher-icon-frame
+{
+    width:                160px;
+    height:               160px;
+    radius:               36px;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+    padding:              16px;
+    transition:           all 130 ease-out;
+
+    :active
+    {
+        width:  136px;
+        height: 136px;
+    }
+}
+
+.launcher-icon-img
+{
+    width:      120px;
+    height:     120px;
+    transition: all 130 ease-out;
+    /*
+       Default accent-color set EXPLICITLY to white instead of left
+       unset. The animator lerps every state-change endpoint pair;
+       lerping (0,0,0,0) -> (0.62,0.62,0.62,1) visits partial-alpha
+       values that fade the image while darkening, reading as
+       flicker. With (1,1,1,1) -> (0.62,0.62,0.62,1) the alpha stays
+       at 1.0 throughout, so the image just darkens smoothly.
+       accent-color is a multiplicative tint in widget_image; white
+       is the no-tint identity.
+    */
+    accent-color: #ffffff;
+
+    :active
+    {
+        width:        102px;
+        height:       102px;
+        accent-color: #a0a0a0;
+    }
+}
+
+.launcher-label
+{
+    font-family: Roboto-Medium;
+    transition:  all 130 ease-out;
+
+    :active
+    {
+        font-color: #b8b8c4;
+    }
+}
+
+/* ===== task switcher (revealed by swipe-up-from-bottom) ======== */
+/*
+    Hidden by default. main.c's on_swipe_up_bottom gesture handler
+    flips display=block (and hides #app-grid in the same step --
+    standard modern phone-shell view-swap pattern, not a
+    z-stacked overlay). From fullscreen the same gesture exits to
+    home; from home / from this view, it swaps with the grid.
+*/
+/*
+   Task switcher overlay.
+
+   Sits ABOVE the launcher grid via the new position: absolute
+   support in meek-ui. The .style omits `display` deliberately --
+   main.c owns visibility, the per-tick reassert at the bottom of
+   the main loop writes display from
+   _meek_shell_internal__task_switcher_visible (same pattern
+   .fullscreen-view uses).
+
+   Inset 0 on every edge anchors the column to shell-column's
+   content rect (which is the panel minus shell-column's own
+   padding). z-index lifts it above the app-grid so a modern-phone
+   "deep dim, big cards" overlay appears on top instead of swapping
+   the view.
+
+   The opacity-only :appear block fades the whole subtree from
+   invisible -> visible over 320 ms. meek-ui's animator can't slide
+   from the bottom (no transform/margin interpolation); fade is
+   what we ship today.
+*/
+.task-switcher
+{
+    position:         absolute;
+    top:              0px;
+    left:             0px;
+    right:            0px;
+    bottom:           0px;
+    z-index:          10;
+
+    /*
+       width / height 100% are belt + braces with the inset 0/0/0/0
+       above. position:absolute already passes the parent's content
+       rect as avail_w/avail_h, but widget_column.layout reads its
+       OWN style fields to decide its bounds.h -- without an explicit
+       height, it auto-shrinks to its children, leaving the bottom
+       half of the panel showing the launcher grid through. With
+       100% on both axes, the column fills the panel and `valign:
+       center` then has slack to actually center the cards-deck.
+    */
+    width:            100%;
+    height:           100%;
+
+    padding:          24px;
+    gap:              16px;
+    background-color: #050507e8;
+    blur:             16;
+
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+
+    /*
+       Opacity is NOT declared here. main.c's per-tick reassert
+       drives it from gesture_recognizer__bottom_swipe_progress():
+       opacity = progress while the finger is on the panel, 1.0
+       once the swipe commits (visible bool true), 0 when hidden.
+       The :appear block / appear shortcut would race the runtime
+       drive, so they're omitted on this rule.
+    */
+}
+
+/*
+   Tile wrapper. Each running app becomes one of these in the
+   cards-deck: a column with the live <process-window> texture on
+   top + a <label> with the app title below. Built dynamically by
+   meek_shell_v1_client.c on toplevel_added and updated on
+   toplevel_title_changed.
+*/
+.tile-card
+{
+    width:                260px;
+    horizontal-alignment: center;
+    gap:                  10px;
+    /*
+       position:relative lets main.c drive inset_t at runtime to
+       shift this card vertically without affecting siblings --
+       used by the swipe-up-to-dismiss gesture in the task
+       switcher. inset_t is 0 by default; the gesture writes a
+       negative value to follow the finger upward.
+    */
+    position: relative;
+}
+
+.tile-label
+{
+    font-size:   16px;
+    font-family: Roboto-Medium;
+    font-color:  #e5e7eb;
+}
+
+/* ===== notification card (blur glass) ========================== */
+
+.notif-card
+{
+    width:              100%;
+    height:             56px;
+    radius:             12px;
+    background-color:   #22222ea0;
+    blur:               8;
+    padding:            8px;
+    gap:                12px;
+    vertical-alignment: center;
+    box-shadow:         0 3 12 #00000060;
+
+    :hover
+    {
+        background-color: #2a2a3aa0;
+    }
+}
+
+.notif-icon-wrap
+{
+    width:                40px;
+    height:               40px;
+    radius:               20px;
+    background-gradient:  #dc2626 #f59e0b vertical;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+    box-shadow:           0 2 6 #dc262680;
+}
+
+.notif-icon
+{
+    font-size:   18px;
+    font-family: Roboto-Bold;
+    font-color:  #ffffff;
+}
+
+.notif-body
+{
+    width:              100%;
+    vertical-alignment: center;
+    gap:                2px;
+}
+
+.notif-title
+{
+    font-size:   14px;
+    font-family: Roboto-Medium;
+    font-color:  #ffffff;
+}
+
+.notif-text
+{
+    font-size:  12px;
+    font-color: #9ca3af;
+}
+
+/* ===== bottom nav ============================================== */
+
+.nav-row
+{
+    width:            100%;
+    height:           72px;
+    background-color: #141418;
+    gap:              0px;
+    padding:          8px;
+}
+
+.nav-button
+{
+    width:            100%;
+    height:           100%;
+    background-color: transparent;
+    font-color:       #9ca3af;
+    font-size:        13px;
+    font-family:      Roboto-Medium;
+    radius:           10px;
+
+    :hover
+    {
+        background-color: #1f2029;
+        font-color:       #e5e7eb;
+    }
+    :active
+    {
+        background-color: #2a2b36;
+    }
+}
+
+.nav-button-active
+{
+    background-color: #262732;
+    font-color:       #ffffff;
+}
+
+/*
+ * Task-switcher deck. Container for live <process-window> tiles
+ * inserted by meek_shell_v1_client, one per running app. Modern-
+ * phone task-switcher proportions: full width, big square-ish
+ * tiles, generous gap, centered on the panel. Sits inside the
+ * .task-switcher overlay column and stretches to fill its content
+ * rect minus the section label.
+ */
+.cards-deck
+{
+    width:             100%;
+    height:            560px;
+    gap:               24px;
+    pad:               16;
+    radius:            20px;
+    background-color:  #0e0e14a0;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+    /*
+       position:relative lets main.c drive inset_l at runtime to
+       horizontally scroll the deck (cycle through cards) without
+       affecting siblings. Companion to the per-card position:
+       relative used by the vertical swipe-up-to-dismiss gesture.
+    */
+    position: relative;
+}
+
+/*
+ * Live tile. Source texture is usually panel-native size
+ * (1080x2246) -- the renderer downsamples to fit. Tile aspect
+ * roughly matches phone-portrait so the preview reads as "shrunk
+ * version of the actual screen". Rounded card with a soft outer
+ * shadow for depth, like a modern phone task-switcher card.
+ */
+.tile-process-window
+{
+    size:              260x460;
+    radius:            22px;
+    background-color:  #1a1a24;
+    box-shadow:        0 8 28 #00000099;
+}
+
+/* ===== fullscreen-view =============================================== */
+/*
+   Hidden by default. Shell toggles display at runtime when a tile is
+   tapped. width/height 100% so when visible it covers the whole shell
+   surface. Background is a dark grey so any letterboxed area around
+   the app's texture (when aspect ratios don't match exactly) reads
+   as "shell chrome" instead of a void black rect.
+
+   No z-index here: scene_render paints siblings in document order;
+   shell-column is hidden via runtime display=NONE when fullscreen
+   is active, and the on-screen keyboard is inserted after
+   fullscreen-view in the tree via scene__show_keyboard so it paints
+   on top naturally.
+*/
+.fullscreen-view
+{
+    /*
+       position:absolute lets main.c animate this view's insets
+       during the icon-to-fullscreen "container transform" launch
+       animation: starts at the tapped icon's bounds, interpolates
+       all four insets to 0 over ~280 ms with ease-out cubic, ends
+       full-panel. Without absolute positioning the column flow
+       would refuse to grow + contract per-frame.
+
+       width / height 100% ARE required: widget_column.layout reads
+       its own size_h / height_pct to derive bounds.h. Without
+       them, the column auto-shrinks to its children, and
+       fullscreen-app inside (which uses height: 100%) resolves
+       against avail_h=0 -> the whole subtree collapses to 0
+       and the user sees a black screen.
+    */
+    position:         absolute;
+    top:              0px;
+    left:             0px;
+    right:            0px;
+    bottom:           0px;
+    width:            100%;
+    height:           100%;
+    background-color: #1f2029;
+}
+
+.fullscreen-app
+{
+    width:            100%;
+    height:           100%;
+    background-color: #1f2029;
+    /*
+        Fade-in when the app comes to fullscreen. main.c flips
+        #fullscreen-view's display from none to block on tile tap;
+        the animator sees fullscreen-app as "newly appeared" and
+        runs the :appear pseudo-state for `appear` ms, interpolating
+        opacity from 0 to 1. meek-ui's animator doesn't support
+        scale/transform yet, so this is opacity only -- the tile-
+        zoom-to-fullscreen effect needs scale/transform support
+        before it can be added.
+    */
+    appear: 220 ease_out;
+    :appear
+    {
+        opacity: 0;
+    }
+}

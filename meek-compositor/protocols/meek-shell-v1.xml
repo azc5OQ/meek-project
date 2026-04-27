@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="meek_shell_v1">
+
+  <copyright>
+    SPDX-License-Identifier: MIT
+    Copyright (c) 2026 the meek project contributors.
+  </copyright>
+
+  <description summary="private meek-shell &lt;-&gt; meek-compositor bridge">
+    A privileged extension bound only by meek-shell, the sole client
+    meek-compositor forwards other clients' buffers + input to.
+
+    The compositor gates the global on the connecting client's
+    process identity (PID + /proc/PID/exe path match against a
+    hardcoded allowlist). Any other client attempting to bind the
+    global will be silently ignored by the registry; if it somehow
+    obtains the global interface descriptor and tries to bind
+    directly, the compositor posts a protocol error and
+    disconnects.
+
+    Lifetime: one meek_shell_v1 object per compositor. Destroying
+    it is equivalent to meek-shell exiting; the compositor will
+    respawn meek-shell and the new instance will re-bind.
+
+    Version 1 keeps the surface minimal: events + requests
+    needed to get a single-output single-shell setup rendering app
+    windows as textures. Multi-output, clipboard, drag-and-drop,
+    popover positioning, explicit damage hints, etc. are v2+
+    territory.
+  </description>
+
+  <interface name="meek_shell_v1" version="1">
+    <description summary="per-shell state + event pump">
+      Bound once by meek-shell. Carries the two-way bridge:
+      compositor -&gt; shell events describing other clients'
+      lifecycle + buffers + raw input; shell -&gt; compositor
+      requests routing input back to specific clients + closing
+      clients.
+    </description>
+
+    <!--
+      ===== lifecycle ===================================================
+    -->
+
+    <request name="destroy" type="destructor">
+      <description summary="stop the bridge">
+        Called on clean meek-shell shutdown. Compositor stops
+        forwarding events and frees any queued toplevel_buffer
+        fds. Does NOT close the still-connected normal-client
+        windows; they just don't get forwarded anymore.
+      </description>
+    </request>
+
+    <request name="announce_ready">
+      <description summary="shell has installed event handlers">
+        Between bind and announce_ready, the compositor queues
+        toplevel_added events (in case shell still has
+        initialization to do). On announce_ready the queue is
+        flushed + realtime events start flowing.
+
+        On meek-shell crash + respawn this is also the trigger
+        for replaying toplevel_added for every still-alive
+        app so the new shell rebuilds its scene.
+      </description>
+    </request>
+
+    <!--
+      ===== input routing (shell -> compositor) =========================
+
+      Shell received a pointer_raw / key_raw / touch_*_raw event,
+      did its hit-test, decided "this event goes to toplevel N".
+      Sends one of these requests; compositor dispatches via
+      standard wl_pointer / wl_keyboard / wl_touch to the target
+      client's seat.
+
+      The `handle` arg is whatever `toplevel_added.handle` gave
+      for the target toplevel. If unknown, compositor posts a
+      protocol error and disconnects.
+
+      Coordinates are SURFACE-LOCAL (relative to the target
+      toplevel's own origin) because the shell knows the on-screen
+      layout and has already translated from screen coords.
+    -->
+
+    <request name="route_pointer_motion">
+      <description summary="forward pointer motion to a toplevel"/>
+      <arg name="handle"    type="uint" summary="toplevel handle"/>
+      <arg name="time_ms"   type="uint"/>
+      <arg name="surface_x" type="int"  summary="surface-local x, pixels"/>
+      <arg name="surface_y" type="int"  summary="surface-local y, pixels"/>
+    </request>
+
+    <request name="route_pointer_button">
+      <description summary="forward pointer button press/release to a toplevel"/>
+      <arg name="handle"  type="uint"/>
+      <arg name="time_ms" type="uint"/>
+      <arg name="button"  type="uint" summary="Linux input-event-codes.h BTN_*"/>
+      <arg name="state"   type="uint" summary="0=release 1=press"/>
+    </request>
+
+    <request name="route_key">
+      <description summary="forward keyboard key to the focused toplevel"/>
+      <arg name="handle"  type="uint"/>
+      <arg name="time_ms" type="uint"/>
+      <arg name="keycode" type="uint" summary="evdev keycode (NOT xkbcommon keysym)"/>
+      <arg name="state"   type="uint" summary="0=release 1=press"/>
+    </request>
+
+    <request name="route_touch_down">
+      <arg name="handle"    type="uint"/>
+      <arg name="time_ms"   type="uint"/>
+      <arg name="id"        type="int"  summary="touch point id (as libinput)"/>
+      <arg name="surface_x" type="int"/>
+      <arg name="surface_y" type="int"/>
+    </request>
+
+    <request name="route_touch_motion">
+      <arg name="handle"    type="uint"/>
+      <arg name="time_ms"   type="uint"/>
+      <arg name="id"        type="int"/>
+      <arg name="surface_x" type="int"/>
+      <arg name="surface_y" type="int"/>
+    </request>
+
+    <request name="route_touch_up">
+      <arg name="handle"  type="uint"/>
+      <arg name="time_ms" type="uint"/>
+      <arg name="id"      type="int"/>
+    </request>
+
+    <!--
+      ===== shell-driven actions on toplevels ===========================
+    -->
+
+    <request name="close_toplevel">
+      <description summary="ask the target client to close itself">
+        Sends xdg_toplevel.close to the target client.
+        Non-destructive: the client may ignore and keep running
+        (save-prompt dialogs etc.). For forced termination see
+        kill_toplevel below.
+      </description>
+      <arg name="handle" type="uint"/>
+    </request>
+
+    <request name="kill_toplevel">
+      <description summary="force-kill the target client's process">
+        Resolves handle -&gt; wl_client -&gt; PID via
+        wl_client_get_credentials, then sends SIGKILL to that PID.
+        Used by the shell's swipe-up-to-dismiss gesture in the
+        task switcher: the user expects the app to be GONE, not
+        to politely-close-then-maybe-stay-running. SIGKILL bypasses
+        the client's signal handlers + save-prompts entirely.
+
+        After the process dies, libwayland fires its EPIPE/destroy
+        path which makes the compositor emit toplevel_removed;
+        shell uses that to clean up the scene node. So callers
+        do NOT need to also call close_toplevel - kill alone
+        produces both the death and the cleanup notification.
+
+        bad_handle/dead_handle errors apply same as close_toplevel.
+      </description>
+      <arg name="handle" type="uint"/>
+    </request>
+
+    <!--
+      ===== lifecycle events (compositor -> shell) ======================
+    -->
+
+    <event name="toplevel_added">
+      <description summary="a new app window appeared">
+        Fires when a normal client creates an xdg_toplevel. Shell
+        uses this to allocate a scene node even before the first
+        buffer arrives.
+
+        After meek-shell crash + respawn + announce_ready, the
+        compositor replays one of these for every still-alive
+        toplevel so the new shell can reconstruct its scene.
+      </description>
+      <arg name="handle" type="uint" summary="opaque; use in route_* + close_toplevel"/>
+      <arg name="app_id" type="string" allow-null="true"
+           summary="client's xdg_toplevel.set_app_id value; may be empty"/>
+      <arg name="title"  type="string" allow-null="true"
+           summary="client's xdg_toplevel.set_title value; may change"/>
+    </event>
+
+    <event name="toplevel_title_changed">
+      <description summary="client retitled its window"/>
+      <arg name="handle" type="uint"/>
+      <arg name="title"  type="string" allow-null="true"/>
+    </event>
+
+    <event name="toplevel_removed">
+      <description summary="app closed or crashed">
+        Shell should remove the scene node for this handle. Any
+        pending route_* calls targeting this handle are a protocol
+        error.
+      </description>
+      <arg name="handle" type="uint"/>
+    </event>
+
+    <event name="toplevel_buffer">
+      <description summary="new pixel content for a toplevel">
+        Fires on every wl_surface.commit that attached a buffer.
+        The fd is a dup of the client's dmabuf fd. Shell must
+        eglCreateImage + glEGLImageTargetTexture2DOES it to get
+        a GL texture. Shell owns the fd from here and must close
+        it when done (typical: close immediately after import,
+        EGL holds the reference).
+
+        `buffer_id` is an opaque token the compositor assigns to
+        each distinct wl_buffer it forwards. Re-used when the client
+        re-attaches the same wl_buffer (triple-buffer rotation).
+        Shell uses it as the key for an EGLImage cache: first time a
+        buffer_id is seen, import; next time, look up the cached
+        texture + EGLImage and skip the eglCreateImage. Compositor
+        emits `buffer_forgotten(buffer_id)` when the underlying
+        wl_buffer is destroyed, at which point the shell must
+        eglDestroyImage + glDeleteTextures for that cache entry.
+
+        v1 only forwards single-plane dmabuf. Shm buffers upload
+        CPU-side on compositor first + then send the resulting
+        dmabuf (or, in the dev path, fall back to sending the
+        shm pool fd; implementation-defined).
+
+        Multi-plane YUV is deferred to v2.
+      </description>
+      <arg name="handle"      type="uint"/>
+      <arg name="buffer_id"   type="uint" summary="compositor-assigned, stable across re-attaches of the same wl_buffer"/>
+      <arg name="fd"          type="fd"   summary="dmabuf fd (one plane)"/>
+      <arg name="width"       type="int"/>
+      <arg name="height"      type="int"/>
+      <arg name="stride"      type="int"/>
+      <arg name="fourcc"      type="uint" summary="DRM fourcc; usually ARGB8888"/>
+      <arg name="modifier_hi" type="uint"/>
+      <arg name="modifier_lo" type="uint"/>
+    </event>
+
+    <event name="buffer_forgotten">
+      <description summary="a previously-seen buffer_id is gone">
+        The wl_buffer that was assigned this buffer_id has been
+        destroyed by the client. Shell must drop its cached
+        EGLImage + GL texture for that id; the id may be re-used
+        by the compositor for a future buffer.
+      </description>
+      <arg name="buffer_id" type="uint"/>
+    </event>
+
+    <event name="toplevel_buffer_shm">
+      <description summary="new pixel content for a toplevel, CPU-side buffer">
+        Same role as toplevel_buffer, for clients that render via
+        wl_shm instead of linux-dmabuf-v1 (notably foot, weston-
+        simple-shm, and any client without hardware buffer support).
+
+        Compositor has already mmapped the client's shm pool + read
+        the pixels; it then writes them into a fresh memfd and
+        passes THAT fd to the shell. Shell mmaps the forwarded fd
+        read-only, uploads via glTexImage2D, and closes the fd
+        immediately after upload (Mesa caches the texture until
+        glDeleteTextures).
+
+        `buffer_id` has the same semantics as toplevel_buffer: the
+        compositor assigns a stable id per underlying wl_buffer and
+        the shell uses it as a texture-cache key. Matching
+        buffer_forgotten fires on wl_buffer destruction.
+
+        `format` is a `wl_shm` format code (WL_SHM_FORMAT_ARGB8888 = 0,
+        WL_SHM_FORMAT_XRGB8888 = 1, etc.). It is NOT a DRM fourcc;
+        the two enums differ. Shell picks the GL upload format
+        accordingly -- on every modern driver GL_BGRA + GL_UNSIGNED_
+        BYTE matches both ARGB8888 and XRGB8888 in little-endian
+        memory order.
+
+        No stride offset field: the memfd holds exactly
+        `stride * height` bytes of pixels, starting at offset 0.
+      </description>
+      <arg name="handle"    type="uint"/>
+      <arg name="buffer_id" type="uint" summary="same id space as toplevel_buffer"/>
+      <arg name="fd"        type="fd"   summary="memfd holding a copy of the shm pixels"/>
+      <arg name="width"     type="int"/>
+      <arg name="height"    type="int"/>
+      <arg name="stride"    type="int"/>
+      <arg name="format"    type="uint" summary="wl_shm_format enum; NOT DRM fourcc"/>
+    </event>
+
+    <!--
+      ===== IME bridge (layer 2 of zwp_text_input_v3 integration) ========
+
+      Flow:
+        1. Third-party app (foot, gtk, qt) binds zwp_text_input_v3 and
+           calls `enable` when its text widget gains focus.
+        2. Compositor emits `ime_request_on(app_handle)` here.
+        3. Shell shows its on-screen keyboard (widget_keyboard).
+        4. User taps a key on the on-screen keyboard -> shell calls
+           `ime_commit_string(text)` here.
+        5. Compositor forwards as
+           `zwp_text_input_v3.commit_string(text)` + `done(serial)` to
+           the most-recently-enabled text_input resource.
+
+      Minimal v1: single character / short string at a time, no
+      preedit, no delete-surrounding. Enough for foot to receive
+      typed letters.
+    -->
+
+    <event name="ime_request_on">
+      <description summary="an app wants the on-screen keyboard">
+        A zwp_text_input_v3 resource owned by app `app_handle` just
+        called `enable`. Shell should display its on-screen
+        keyboard and route key taps via `ime_commit_string`.
+      </description>
+      <arg name="app_handle" type="uint"/>
+    </event>
+
+    <event name="ime_request_off">
+      <description summary="the app no longer wants the keyboard">
+        Fires when the app's text_input is disabled, destroyed, or
+        loses focus. Shell should hide its on-screen keyboard.
+      </description>
+      <arg name="app_handle" type="uint"/>
+    </event>
+
+    <request name="ime_commit_string">
+      <description summary="deliver typed text to the IME-focused app">
+        The shell's on-screen keyboard produced `text` (one or more
+        UTF-8 codepoints). Compositor forwards as
+        `zwp_text_input_v3.commit_string(text)` + `done(serial)` to
+        the currently enabled text_input.
+      </description>
+      <arg name="text" type="string"/>
+    </request>
+
+    <request name="route_keyboard_key">
+      <description summary="deliver a key press/release to the focused app">
+        Shell's widget_keyboard produced a physical-level key event.
+        Compositor forwards as wl_keyboard.key on every wl_keyboard
+        resource owned by the target app's client. `keycode` is a
+        Linux evdev keycode (KEY_A = 30, KEY_B = 48, etc.). `state`:
+        0 = released, 1 = pressed (matches wl_keyboard enum).
+
+        `app_handle` identifies the target. If 0, routes to the
+        most-recently-focused app (whatever we stored as the keyboard
+        focus target when the user tapped a tile to go fullscreen).
+
+        Use together with route_keyboard_modifiers when the shell
+        needs to simulate shifted / ctrl'd keys.
+      </description>
+      <arg name="app_handle" type="uint"/>
+      <arg name="time_ms"    type="uint"/>
+      <arg name="keycode"    type="uint"/>
+      <arg name="state"      type="uint"/>
+    </request>
+
+    <request name="route_keyboard_modifiers">
+      <description summary="update the keyboard modifier state for the focused app">
+        Same target selection as route_keyboard_key. The four
+        bitfields match wl_keyboard.modifiers: depressed / latched
+        / locked / group. Shell sends before any key event that
+        uses a shift / ctrl / etc. held-modifier; resets to 0 when
+        the modifier release completes.
+      </description>
+      <arg name="app_handle" type="uint"/>
+      <arg name="depressed"  type="uint"/>
+      <arg name="latched"    type="uint"/>
+      <arg name="locked"     type="uint"/>
+      <arg name="group"      type="uint"/>
+    </request>
+
+    <!--
+      ===== raw input events (compositor -> shell) ======================
+
+      Compositor owns /dev/input/* via libinput. It does NOT
+      hit-test (no idea where windows are on screen, since the
+      shell laid them out). So it forwards raw events here; the
+      shell hit-tests and calls route_* back.
+    -->
+
+    <event name="pointer_motion_raw">
+      <arg name="time_ms" type="uint"/>
+      <arg name="x"       type="int" summary="screen pixels"/>
+      <arg name="y"       type="int"/>
+    </event>
+
+    <event name="pointer_button_raw">
+      <arg name="time_ms" type="uint"/>
+      <arg name="button"  type="uint"/>
+      <arg name="state"   type="uint"/>
+    </event>
+
+    <event name="key_raw">
+      <arg name="time_ms" type="uint"/>
+      <arg name="keycode" type="uint"/>
+      <arg name="state"   type="uint"/>
+    </event>
+
+    <event name="touch_down_raw">
+      <arg name="time_ms" type="uint"/>
+      <arg name="id"      type="int"/>
+      <arg name="x"       type="int"/>
+      <arg name="y"       type="int"/>
+    </event>
+
+    <event name="touch_motion_raw">
+      <arg name="time_ms" type="uint"/>
+      <arg name="id"      type="int"/>
+      <arg name="x"       type="int"/>
+      <arg name="y"       type="int"/>
+    </event>
+
+    <event name="touch_up_raw">
+      <arg name="time_ms" type="uint"/>
+      <arg name="id"      type="int"/>
+    </event>
+
+    <!--
+      ===== frame pacing (compositor -> shell) ==========================
+    -->
+
+    <event name="frame_presented">
+      <description summary="shell's last commit is now on screen">
+        Fires after the DRM page-flip ack (or after eglSwapBuffers
+        on the nested X11 dev backend). Shell uses this as its
+        "draw the next frame" cue.
+      </description>
+      <arg name="time_ms" type="uint" summary="CLOCK_MONOTONIC ms"/>
+    </event>
+
+    <!--
+      ===== errors ======================================================
+    -->
+
+    <enum name="error">
+      <entry name="not_allowed" value="0"
+             summary="client tried to bind but isn't the allowed shell"/>
+      <entry name="bad_handle" value="1"
+             summary="route_* / close_toplevel referenced an unknown handle"/>
+      <entry name="dead_handle" value="2"
+             summary="route_* targeted a toplevel that's been removed"/>
+      <entry name="already_ready" value="3"
+             summary="announce_ready called twice on the same bridge"/>
+    </enum>
+
+  </interface>
+
+</protocol>

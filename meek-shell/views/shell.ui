@@ -1,0 +1,60 @@
+<!--
+  shell.ui - meek-shell home view.
+
+  HOME (default): status bar at top, app launcher grid below.
+  TASK SWITCHER:  hidden by default; main.c flips display=block
+                  on the on_swipe_up_bottom gesture.
+  FULLSCREEN:     #fullscreen-view shown when an app is fullscreened
+                  (main.c flips display at runtime in _show_fullscreen).
+
+  The <collection id="app-grid"> ships EMPTY -- main.c's
+  _populate_app_grid() runs after app_registry__scan() and inserts
+  one <column class="launcher-tile"> per .desktop file found. The
+  same populate runs again on hot-reload because hot_reload rebuilds
+  the entire scene tree and the dynamically inserted children are
+  thrown away with it.
+-->
+<window title="meek-shell" class="shell-root">
+
+    <column id="shell-column" class="shell-column">
+
+        <row class="status-bar">
+            <label class="status-time"    text="12:47" />
+            <label class="status-spacer"  text="" />
+            <label class="status-signal"  text="LTE" />
+            <label class="status-battery" text="87%" />
+        </row>
+
+        <collection id="app-grid" class="app-grid" />
+
+        <column id="task-switcher" class="task-switcher" on_click="__on_task_switcher_bg_tap">
+            <label class="section-label" text="Running apps" />
+            <!--
+                cards-deck has its own on_click that does nothing.
+                Without it, clicks on the deck background (between
+                cards, or after a small swipe that didn't suppress
+                the click) bubble up to task-switcher's on_click and
+                dismiss the switcher. The whole deck row, the full
+                horizontal width of the panel by virtue of width:100%,
+                is the "inside the app-preview" zone -- taps here do
+                nothing (cards consume their own taps for fullscreen-
+                enter). Only taps on the section-label area or above/
+                below the deck reach __on_task_switcher_bg_tap.
+            -->
+            <row id="cards-deck" class="cards-deck" on_click="__on_deck_consume_tap" />
+        </column>
+
+    </column>
+
+    <!--
+        fullscreen-view is the LAST child of <window> so it paints
+        AFTER shell-column. With position:absolute it doesn't disturb
+        flow; the late paint order means the icon-grow launch
+        animation lands ON TOP of the launcher grid as it expands,
+        instead of behind it.
+    -->
+    <column id="fullscreen-view" class="fullscreen-view">
+        <process-window id="fullscreen-app" class="fullscreen-app" on_click="__process_window_tap" />
+    </column>
+
+</window>
