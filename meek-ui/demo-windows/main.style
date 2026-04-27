@@ -1,0 +1,898 @@
+/*
+ * main.style - showcase: nested divs/columns, scaling slider, two button styles.
+ *
+ * structure (from main.ui):
+ *   Window  (canvas, near-black)
+ *     div #fancy-div          -- the "settings panel" plate
+ *       Column #main          -- vertical stack of sections
+ *         Slider #scale
+ *         div .accent-bar     -- thin indigo line
+ *         Column .card        -- "primary actions" group
+ *           div .card-strip-primary
+ *           Button x2 (.primary)
+ *         Column .card        -- "secondary actions" group
+ *           div .card-strip-ghost
+ *           Button x2 (.ghost)
+ *
+ * size: 0xN   means "fill available width, fixed height N".
+ * size: Nx0   means "fixed width N, auto height" (auto = fill for divs,
+ *             sum-of-children for Columns).
+ * size: 0x0   means "fill width, auto height".
+ */
+
+/*
+ * Default font for everything. Type = Window selector matches only the
+ * root, but every child inherits via the resolver fallback inside
+ * scene.c -- so setting it here propagates to all text-bearing widgets
+ * unless a more specific selector overrides.
+ *
+ * The font family name matches the .ttf filename (minus extension) in
+ * gui/src/fonts/ -- the DLL auto-discovered it there at startup.
+ */
+window {
+    background-color: #0a0a0d;
+    font-family: Roboto-Regular;
+    font-size: 14;
+    font-color: #e5e7eb;
+
+    /*
+     * Enable a whole-page scrollbar. The scroll-list demo div below is
+     * already plenty for the 800x600 default window, but if the window
+     * gets resized smaller (or content grows past the viewport) the
+     * page itself starts scrolling -- exactly like a browser tab.
+     *
+     * pad: 0 keeps Window's content rect identical to the viewport
+     * so existing children keep their (0,0)-anchored positions.
+     */
+    overflow-y: auto;
+    scrollbar-size: 12;
+    scrollbar-radius: 6;
+    scrollbar-track: #14151b;
+    scrollbar-thumb: #4a5365;
+    /*
+     * Smooth scrolling on the page. Same story as .scroll-list below:
+     * wheel events lerp the viewport toward the new scroll_y_target
+     * over ~180 ms (slower than the inner list so the outer motion
+     * feels weightier). Drag on the page thumb is still 1:1.
+     */
+    scroll-smooth: 70;
+    /*
+     * Edge-fade region: children within 50 px of the top or bottom
+     * of the window's visible rect get their alpha multiplied by a
+     * ramp from 0 (at the edge) to 1 (at 50 px inside). Makes
+     * scroll reveal/dismiss feel soft instead of hard-clipping at
+     * the viewport bounds.
+     */
+    scroll-fade: 50;
+    pad: 0;
+
+    /*
+     * Whole-page pop-in animation. Set on Window so the value cascades
+     * to every descendant via the style resolver -- the entire UI
+     * fades in together over 600 ms with an ease-out curve.
+     *
+     * This is the SHORTCUT form: `appear: <ms> [easing];`. The
+     * animator multiplies every color's alpha by an eased fade
+     * factor (everything fades in from invisible). For per-property
+     * control, see the Button.primary :appear pseudo-state below.
+     *
+     * Hot-reloading main.ui rebuilds the tree, which resets every
+     * node's appear_age_ms to 0 -- the page replays the animation,
+     * giving instant visual confirmation that the edit landed.
+     */
+    appear: 600 ease-out;
+}
+
+#fancy-div {
+    background-color: #14151b;
+    pad: 24;
+    radius: 12;
+    /*
+     * Full-width on narrow displays (phones). CSS-style percent:
+     * the value is resolved against the parent's inner content
+     * area each layout pass. Falls back to a fixed 380 px cap via
+     * width: if you need a specific logical-pixel width instead.
+     */
+    width: 100%;
+    /*
+     * Height stays auto so the panel grows with its children and
+     * the page scrollbar on <window> actually has something to
+     * scroll.
+     */
+}
+
+#main {
+    pad: 0;
+    gap: 14;
+    size: 0x0;
+}
+
+/* ===== top controls ===== */
+
+slider {
+    background-color: #1f2129;
+    accent-color: #818cf8;
+    radius: 6;
+    size: 0x18;
+}
+
+.accent-bar {
+    background-color: #6366f1;
+    radius: 2;
+    size: 0x3;
+}
+
+/* Hero image: fixed height; width fills the parent column.
+ * object-fit: contain keeps the image's aspect ratio -- the 1200x1233
+ * flower.png renders letterboxed inside the 0x120 slot instead of
+ * being stretched horizontally. Try `cover` to crop to fill, `fill`
+ * for the pre-property stretch look, or `none` for native pixels
+ * centered + cropped. */
+.hero-image {
+    size: 0x180;
+    radius: 12;
+    object-fit: contain;
+}
+
+/* ===== cards ===== */
+
+.card {
+    background-color: #1c1e26;
+    radius: 10;
+    pad: 12;
+    gap: 8;
+    size: 0x0;
+}
+
+.card-strip-primary {
+    background-color: #6366f1;
+    radius: 2;
+    size: 0x4;
+}
+
+.card-strip-ghost {
+    background-color: #6b7280;
+    radius: 2;
+    size: 0x4;
+}
+
+/* ===== typography labels ===== */
+
+.heading {
+    font-size: 20;
+    font-color: #f4f5fa;
+    size: 0x28;
+}
+
+.label {
+    font-size: 12;
+    font-color: #9ca3af;
+    size: 0x14;
+}
+
+/* ===== input ===== */
+
+input {
+    background-color: #1f2129;
+    font-color: #f4f5fa;
+    radius: 6;
+    size: 0x28;
+}
+
+/* ===== buttons ===== */
+
+button {
+    radius: 7;
+    size: 0x36;
+    font-color: #f4f5fa;
+}
+
+button.primary {
+    background-color: #6366f1;
+
+    :hover {
+        background-color: #818cf8;
+    }
+
+    :pressed {
+        background-color: #4f46e5;
+    }
+
+    /*
+     * Per-property :appear pseudo-state. The block declares the
+     * STARTING values; the animator interpolates each listed
+     * property from these values toward whatever the resolver
+     * computes for the node's current state (default / hover /
+     * pressed). The optional `animation: <ms> [easing];` declaration
+     * sets timing for this state's animation; if omitted the
+     * animator uses 300 ms ease-out by default.
+     *
+     *   bg: #6366f100;   -> start fully transparent (eight-digit
+     *                       hex; trailing 00 = alpha 0). The fade
+     *                       lands on this rule's bg color (#6366f1)
+     *                       at full alpha after the animation.
+     *   animation: 800   -> override the default duration so
+     *                       primary buttons take longer to land
+     *                       than the rest of the page (visible
+     *                       "pop in" sequence).
+     *
+     * Try editing this block while the demo is running -- hot reload
+     * rebuilds the tree and replays the animation each time.
+     */
+    :appear {
+        background-color: #6366f100;
+        animation: 800 ease-out;
+    }
+}
+
+button.ghost {
+    background-color: #2a2f38;
+
+    :hover {
+        background-color: #3a4150;
+    }
+
+    :pressed {
+        background-color: #20242b;
+    }
+}
+
+/* ===== scrollable list demo ===== */
+/*
+ * Demonstrates the new scrollbar support on <div>. The fixed height
+ * (120px) is smaller than the stacked list items inside, so overflow-y
+ * triggers an AUTO bar. The bar is styled to match the rest of the
+ * theme: a dim track and an indigo thumb.
+ *
+ * scrollbar-size:   thickness of the bar in pixels (thin but grabbable).
+ * scrollbar-radius: uniform corner radius for track + thumb.
+ * scrollbar-track:  channel color behind the thumb.
+ * scrollbar-thumb:  draggable thumb color.
+ * overflow-y: auto  bar appears only when the content exceeds bounds.
+ */
+.scroll-list {
+    background-color: #1c1e26;
+    radius: 8;
+    pad: 10;
+    gap: 6;
+    size: 0x120;
+    overflow-y: auto;
+    scrollbar-size: 10;
+    scrollbar-radius: 5;
+    scrollbar-track: #2a2f38;
+    scrollbar-thumb: #6366f1;
+
+    /*
+     * Smooth scrolling. Wheel + thumb-drag write to scroll_y_target;
+     * the animator lerps scroll_y toward target with a ~140 ms time
+     * constant (first 63 % of the distance in one tau, asymptoting).
+     * Drag interactions stay 1:1 -- only wheel input feels the lerp,
+     * matching CSS's `scroll-behavior: smooth`. A 0 value (or leaving
+     * this property off) gives the instant-snap behaviour.
+     */
+    scroll-smooth: 60;
+    /*
+     * Smaller edge-fade here than on the window because the list is
+     * only 288 px tall -- a 50 px fade would eat most of the visible
+     * area. 20 px is enough to soften the top/bottom cut without
+     * crowding the middle.
+     */
+    scroll-fade: 20;
+
+    /*
+     * scrollable list "drops down" with an ease-in-out curve, slower
+     * than the page-level fade so it visibly arrives a bit after
+     * everything else has settled.
+     */
+    :appear {
+        background-color: #1c1e2600;
+        animation: 1000 ease-in-out;
+    }
+}
+
+.list-item {
+    font-color: #d1d5db;
+    font-size: 13;
+    size: 0x18;
+}
+
+/* ===== showcase: extra visual sections (push the renderer's complexity) ===== */
+/*
+ * The blocks below stack additional content under the main panel so the
+ * page scrollbar always has something to scroll AND the renderer batches
+ * many more rects + glyphs per frame -- d3d11/d3d9/opengl3 all stress-
+ * tested with the same scene.
+ */
+
+.section-divider {
+    background-color: #14151b;
+    radius: 1;
+    size: 0x2;
+    font-color: #6b7280;
+}
+
+.section-heading {
+    font-size: 18;
+    font-color: #e5e7eb;
+    size: 0x24;
+
+    :appear {
+        font-color: #e5e7eb00;
+        animation: 500 ease-out;
+    }
+}
+
+/*
+ * =====================================================================
+ * Typography showcase
+ * =====================================================================
+ *
+ * Each selector below pins a font-family (filename stem under
+ * gui/src/fonts/) + a font-size + a specific color + a size_h large
+ * enough to hold that font's line_height. The set deliberately spans
+ * weight (Light / Regular / Medium / Bold), metric family (Roboto vs
+ * Karla vs DroidSans), variable-vs-mono (Cousine, ProggyClean), and
+ * display-vs-body-vs-caption size ranges. Side-by-side in the demo,
+ * this should make the differences between (a) the gamma-corrected
+ * grayscale AA pipeline and (b) DirectWrite-ClearType on the same
+ * desktop much easier to judge -- single-size lorem-ipsum blocks all
+ * looked the same, which is why the first screenshot didn't show the
+ * rendering improvements clearly.
+ *
+ * Colors per line are intentionally different (warm amber for the
+ * display type, cool indigo for mono, accent greens/pinks elsewhere)
+ * to make it obvious which rule targets which line without counting.
+ */
+
+/*
+ * No explicit `size:` on any of these rules: Text widget auto-sizes
+ * to the font's measured width + line_height when size_w/size_h are
+ * 0. That's exactly what we want for mixed-size lines in a column.
+ *
+ * A subtle gotcha with the parser: `size: 0xNN;` is NOT hex -- the
+ * `x` is a literal separator between width and height, and the
+ * numbers on either side are read as decimals. So `0x3c` parses as
+ * width=0 then 'x' then the parser tries to read 3 + anything starting
+ * with 'c', which fails with "expected ';' at end of declaration".
+ * Only decimal-only values like `0x24` (= w=0, h=24) work. Simplest
+ * workaround is to leave size off entirely and let Text self-size.
+ */
+
+/* Big display heading. Raleway-Bold at 40 px -- exercises the atlas
+   packer at the large end, where single-pixel softness is visible. */
+.type-display {
+    font-family: Raleway-Bold;
+    font-size:   40;
+    font-color:       #f5d0a9;
+}
+
+/* Medium weight for titles / card headers. */
+.type-title {
+    font-family: Roboto-Medium;
+    font-size:   22;
+    font-color:       #e5e7eb;
+}
+
+/* Light weight subtitle -- stems are thin, the place gamma artifacts
+   show up worst if blending is off. */
+.type-subtitle {
+    font-family: Roboto-Light;
+    font-size:   17;
+    font-color:       #cbd5e1;
+}
+
+/* Body text in the three Roboto weights side-by-side. Same copy so
+   the reader can compare stroke weight without re-parsing words. */
+.type-body {
+    font-family: Roboto-Regular;
+    font-size:   14;
+    font-color:       #d1d5db;
+}
+.type-body-bold {
+    font-family: Roboto-Bold;
+    font-size:   14;
+    font-color:       #fda4af;
+}
+.type-body-light {
+    font-family: Roboto-Light;
+    font-size:   14;
+    font-color:       #a5b4fc;
+}
+
+/* Smaller sans face for secondary labels. */
+.type-caption {
+    font-family: Karla-Regular;
+    font-size:   12;
+    font-color:       #9ca3af;
+}
+
+/* Mono: Cousine is a Consolas-shaped metric-compatible coding font. */
+.type-mono {
+    font-family: Cousine-Regular;
+    font-size:   14;
+    font-color:       #c4b5fd;
+}
+
+/* Mono: ProggyClean is the classic 1-bit coder font. Best at 13 px. */
+.type-mono-small {
+    font-family: ProggyClean;
+    font-size:   13;
+    font-color:       #fbbf24;
+}
+
+/* DroidSans, the original Android system default -- slightly heavier
+   than Roboto at the same nominal size. Worth comparing directly. */
+.type-droidsans {
+    font-family: DroidSans;
+    font-size:   15;
+    font-color:       #bef264;
+}
+
+/* Display/game faces: kenvector_future + its thin sibling. These have
+   very different visual character from the sans faces above. */
+.type-game {
+    font-family: kenvector_future;
+    font-size:   18;
+    font-color:       #22d3ee;
+}
+.type-game-thin {
+    font-family: kenvector_future_thin;
+    font-size:   14;
+    font-color:       #67e8f9;
+}
+
+/* "Specimen" line -- uppercase + digits + punctuation in Roboto-Bold
+   at a size where you can count pixels on a stem. */
+.type-specimen {
+    font-family: Roboto-Bold;
+    font-size:   16;
+    font-color:       #f472b6;
+}
+
+/*
+ * Subsection divider inside the Typography section -- a softer
+ * medium-weight label in a purple accent so it doesn't compete with
+ * the main section heading but still demarcates a grouping.
+ */
+.type-subsection {
+    font-family: Roboto-Medium;
+    font-size:   14;
+    font-color:       #a78bfa;
+}
+
+/*
+ * ProggyClean and ProggyTiny showcase rows. ProggyClean native size
+ * is 13 px, ProggyTiny native is 10 px -- anything at those exact
+ * sizes looks crisp because the font's design maps every stem to a
+ * whole pixel column/row. Off-native sizes demonstrate where the
+ * "bitmap advantage" stops helping. Color is deliberately plain so
+ * size/family differences are what the eye picks up, not hue.
+ */
+.type-proggy-10 { font-family: ProggyClean; font-size: 10; color: #e5e7eb; }
+.type-proggy-13 { font-family: ProggyClean; font-size: 13; color: #a5b4fc; }
+.type-proggy-16 { font-family: ProggyClean; font-size: 16; color: #e5e7eb; }
+.type-proggy-20 { font-family: ProggyClean; font-size: 20; color: #e5e7eb; }
+.type-proggy-26 { font-family: ProggyClean; font-size: 26; color: #e5e7eb; }
+.type-tiny-10   { font-family: ProggyTiny;  font-size: 10; color: #fbbf24; }
+.type-tiny-12   { font-family: ProggyTiny;  font-size: 12; color: #fbbf24; }
+
+/*
+ * =====================================================================
+ * Show / Hide demo panels
+ * =====================================================================
+ *
+ * Two content blocks that the checkbox handlers in main.c toggle via
+ * display and visibility. The :appear block drives the fade-in each
+ * time the panel flips from hidden->shown (the animator resets
+ * appear_age_ms on that transition), which makes toggling feel like
+ * a proper animated widget rather than a pop-in.
+ */
+.demo-panel {
+    background-color: #1a1c24;
+    radius: 12;
+    pad: 14;
+    gap: 8;
+
+    :appear {
+        background-color: #1a1c2400;
+        animation: 500 ease-out;
+    }
+}
+
+.demo-panel-heading {
+    font-family: Roboto-Medium;
+    font-size:   16;
+    font-color:       #e5e7eb;
+}
+
+.demo-panel-body {
+    font-family: Roboto-Regular;
+    font-size:   13;
+    font-color:       #a1a1aa;
+}
+
+.swatch-row {
+    background-color: #14151b;
+    radius: 8;
+    pad: 8;
+    gap: 6;
+    size: 0x46;
+}
+
+/*
+ * Each swatch needs an EXPLICIT width now that <Row> lays children
+ * out horizontally. Leaving size_w at 0 makes widget_div auto-fill
+ * the Row's inner width -- the first swatch consumes everything and
+ * the rest collapse to zero. 40x30 gives six visible squares (6 * 40
+ * + 5 * 6 gap = 270 px) comfortably inside the 380-wide panel.
+ */
+.swatch {
+    radius: 6;
+    size: 40x30;
+}
+
+.swatch-red    { bg: #ef4444; }
+.swatch-amber  { bg: #f59e0b; }
+.swatch-green  { bg: #10b981; }
+.swatch-cyan   { bg: #06b6d4; }
+.swatch-violet { bg: #8b5cf6; }
+.swatch-pink   { bg: #ec4899; }
+
+/*
+ * Each swatch uses a slightly different appear duration so they "rain
+ * in" with a visible timing offset. The selector form here is compound:
+ * `.swatch-red:appear` (no space) — the scene selector parser splits
+ * the trailing pseudo-state off the class. Spaces in selectors aren't
+ * supported (no descendant combinator), so don't put a space before
+ * `:appear` even if CSS habit screams for it.
+ */
+.swatch-red:appear    { bg: #ef444400; animation: 400 ease-out; }
+.swatch-amber:appear  { bg: #f59e0b00; animation: 500 ease-out; }
+.swatch-green:appear  { bg: #10b98100; animation: 600 ease-out; }
+.swatch-cyan:appear   { bg: #06b6d400; animation: 700 ease-out; }
+.swatch-violet:appear { bg: #8b5cf600; animation: 800 ease-out; }
+.swatch-pink:appear   { bg: #ec489900; animation: 900 ease-out; }
+
+.metric-card {
+    background-color: #1c1e26;
+    radius: 10;
+    pad: 14;
+    gap: 4;
+    size: 0x60;
+}
+
+.metric-label {
+    font-color: #9ca3af;
+    font-size: 11;
+    size: 0x14;
+}
+
+.metric-value {
+    font-color: #f4f5fa;
+    font-size: 22;
+    size: 0x28;
+}
+
+.metric-bar {
+    background-color: #14151b;
+    radius: 3;
+    size: 0x6;
+}
+
+.metric-bar-fill-good {
+    background-color: #10b981;
+    radius: 3;
+    size: 220x6;
+
+    :appear {
+        background-color: #10b98100;
+        animation: 1100 ease-in-out;
+    }
+}
+
+.metric-bar-fill-warn {
+    background-color: #f59e0b;
+    radius: 3;
+    size: 140x6;
+
+    :appear {
+        background-color: #f59e0b00;
+        animation: 1100 ease-in-out;
+    }
+}
+
+/* ===== form controls (checkbox / radio / select dropdown) ===== */
+
+/*
+ * form-row is a plain Row used to put a form control next to its
+ * label. Row layout is still placeholder in the toolkit (see widgets/
+ * widget_row.c), so it currently behaves like a fill-width container;
+ * we give it a fixed height so the label sits vertically centered
+ * alongside the control.
+ */
+.form-row {
+    size: 0x26;
+    gap: 10;
+}
+
+.form-label {
+    font-color: #d1d5db;
+    font-size: 13;
+    size: 0x20;
+}
+
+.check {
+    background-color: #1f2129;
+    accent-color: #6366f1;
+    radius: 4;
+    size: 20x20;
+
+    :hover {
+        background-color: #2a2d38;
+    }
+
+    :appear {
+        background-color: #1f212900;
+        animation: 400 ease-out;
+    }
+}
+
+.theme {
+    background-color: #1f2129;
+    accent-color: #6366f1;
+    size: 20x20;
+
+    :hover {
+        background-color: #2a2d38;
+    }
+
+    :appear {
+        background-color: #1f212900;
+        animation: 400 ease-out;
+    }
+}
+
+.dropdown {
+    background-color: #1f2129;
+    font-color: #f4f5fa;
+    accent-color: #818cf8;
+    radius: 6;
+    size: 0x36;
+    font-size: 14;
+
+    :hover {
+        background-color: #2a2d38;
+    }
+
+    :pressed {
+        background-color: #181920;
+    }
+
+    :appear {
+        background-color: #1f212900;
+        animation: 600 ease-out;
+    }
+}
+
+/*
+ * ===========================================================================
+ * Theme toggle row + effect showcase hero card
+ * ===========================================================================
+ *
+ * Top strip with the page heading on the left and a "Toggle theme"
+ * button on the right. horizontal-alignment on the row pushes the
+ * button flush right; vertical-alignment centers the heading
+ * vertically within the 48 px strip.
+ */
+.theme-row {
+    size: 0x48;
+    horizontal-alignment: right;
+    vertical-alignment: center;
+    gap: 12;
+}
+
+/*
+ * Hero card. Exercises EVERY new effect property together:
+ *   bg-gradient     horizontal indigo -> violet fade
+ *   box-shadow      drop shadow underneath the card body
+ *   opacity         95 % so the violet tint reads softly
+ *   z-index         10 -- above neighbouring elements even if the
+ *                   tree orders them later (no actual overlap in
+ *                   this demo, but the property is live and you can
+ *                   test by setting a negative z-index on anything)
+ *   horizontal/vertical-alignment -- content centered within the card
+ */
+.hero-card {
+    bg-gradient: #4338ca #a855f7 horizontal;
+    box-shadow: 0 8 24 #00000080;
+    opacity: 0.95;
+    z-index: 10;
+    radius: 16;
+    pad: 28;
+    gap: 8;
+    size: 0x120;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+}
+.hero-title {
+    font-family: Roboto-Bold;
+    font-size:   28;
+    font-color:       #f5f3ff;
+    size:        0x32;
+}
+.hero-subtitle {
+    font-family: Roboto-Light;
+    font-size:   14;
+    font-color:       #e9d5ff;
+    size:        0x20;
+}
+
+/*
+ * Launcher-style grid. layout:grid + columns:4 picks the grid path
+ * inside widget_collection.c; item-width / item-height fix each cell.
+ * Each tile is a small column with an icon + a centered label.
+ * horizontal-alignment:center on the tile centers the inner icon
+ * within whatever width the cell hands us.
+ */
+.launcher-grid {
+    layout:      grid;
+    columns:     4;
+    item-width:  72;
+    item-height: 92;
+    gap:         12;
+    pad:         12;
+    background-color:          #14151b;
+    radius:      10;
+}
+.launcher-tile {
+    background-color:     #1f2129;
+    radius: 10;
+    pad:    8;
+    gap:    4;
+    horizontal-alignment: center;
+    vertical-alignment:   center;
+
+    :hover {
+        background-color: #2a2d38;
+    }
+
+    :appear {
+        background-color:        #1f212900;
+        animation: 500 ease-out;
+    }
+}
+.launcher-icon {
+    size: 48x48;
+    radius: 10;
+    /*
+     * Wallpapers have varied aspect ratios -- object-fit: cover
+     * crops them to the square tile so no letterbox black bars
+     * intrude on the rounded icon look.
+     */
+    object-fit: cover;
+}
+.launcher-label {
+    font-size: 11;
+    font-color:     #cbd5e1;
+    size:      0x14;
+}
+
+/*
+ * Color picker showcase styles.
+ */
+.picker-strip {
+    size: 0x24;
+    radius: 4;
+}
+.picker-classic {
+    size: 0x180;
+    radius: 8;
+}
+.color-preview {
+    size: 0x40;
+    radius: 8;
+    background-color: #6366f1;
+    box-shadow: 0 4 14 #00000066;
+}
+
+/*
+ * Textarea + virtual keyboard toggle.
+ * The textarea reserves a healthy vertical slab so wrap + multi-line
+ * is visible when you start typing.
+ */
+.notes-area {
+    background-color: #1f2129;
+    font-color: #f4f5fa;
+    radius: 8;
+    size: 0x120;
+    font-size: 14;
+}
+
+/*
+ * Canvas. Bigger than the window is wide at the low scale factor
+ * so the size:0x260 makes the canvas fill available width and the
+ * `width=512 height=260` on the widget itself drives the backing
+ * buffer resolution (not the displayed size).
+ */
+.paint-canvas {
+    background-color: #0a0a0d;
+    radius: 8;
+    size: 0x160;
+    box-shadow: 0 6 18 #00000080;
+}
+
+/*
+ * object-fit showcase. Two rows of two cells each. Every .fit-demo-*
+ * class pins the SAME widget size so the only difference between
+ * them is the object-fit value -- the eye can compare stretch vs
+ * letterbox vs crop vs native directly.
+ */
+.fit-row {
+    size: 0x150;
+    gap: 10;
+}
+.fit-cell {
+    background-color: #14151b;
+    radius: 8;
+    pad: 10;
+    gap: 6;
+    size: 0x0;
+}
+.fit-caption {
+    font-size: 11;
+    font-color: #9ca3af;
+    size: 0x14;
+}
+.fit-demo-fill {
+    size: 0x100;
+    radius: 6;
+    object-fit: fill;
+}
+.fit-demo-contain {
+    size: 0x100;
+    radius: 6;
+    object-fit: contain;
+    background-color: #0a0a0d;   /* the letterbox bars show this bg */
+}
+.fit-demo-cover {
+    size: 0x100;
+    radius: 6;
+    object-fit: cover;
+}
+.fit-demo-none {
+    size: 0x100;
+    radius: 6;
+    object-fit: none;
+    background-color: #0a0a0d;
+}
+
+/*
+ * background-image on a plain <div>. Unlike <image>, the image
+ * paints as the container's bg and child text reads on top. Useful
+ * for cards / splash panels / feature blocks. Same fit keyword set
+ * as object-fit, just named background-size to match CSS.
+ */
+.bg-cover-card {
+    background-image: "wallpapers/wallhaven-qr27rq.jpg";
+    background-size: cover;
+    radius: 12;
+    pad: 20;
+    size: 0x180;
+    font-color: #ffffff;
+    box-shadow: 0 6 16 #00000080;
+}
+.bg-contain-card {
+    background-image: "wallpapers/wallhaven-qrjmgl.jpg";
+    background-size: contain;
+    background-color: #14151b;
+    radius: 12;
+    pad: 20;
+    size: 0x180;
+    font-color: #ffffff;
+}
+.bg-caption {
+    font-family: Roboto-Medium;
+    font-size: 14;
+    font-color: #ffffff;
+    size: 0x20;
+}

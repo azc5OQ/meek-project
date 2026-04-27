@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<manifest xmlns:tools="http://schemas.android.com/tools" xmlns:android="http://schemas.android.com/apk/res/android" package="${PACKAGENAME}">
+	<uses-sdk android:minSdkVersion="${ANDROIDVERSION}"
+          android:targetSdkVersion="${ANDROIDTARGET}" />
+    <!--
+        extractNativeLibs="true": tell the installer to unpack native
+        .so files out of the APK into the app's lib dir at install time.
+        Required here because our build path uses 'aapt add' which
+        always DEFLATEs entries; on API 23+ the default of false would
+        fail install since it mandates stored (uncompressed) + page-
+        aligned .so entries so the loader can mmap them directly.
+        A later cleanup can switch to aapt2 (which stores .so properly)
+        and drop this attribute.
+    -->
+    <application android:debuggable="true" android:hasCode="false" android:label="${LABEL}" android:extractNativeLibs="true" tools:replace="label" android:allowBackup="true">
+        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:label="${LABEL}" android:name="android.app.NativeActivity" android:exported="true">
+            <meta-data android:name="android.app.lib_name" android:value="${APPNAME}"/>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

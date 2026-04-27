@@ -1,0 +1,402 @@
+<window title="gui poc">
+
+    <!--
+        Outer panel is a column instead of a <div> so it auto-sizes to
+        its children's total height. That way window's content height
+        can exceed the viewport and the page-level scrollbar (declared
+        on window in main.style as overflow-y: auto) actually has
+        something to scroll. <div> would fill the viewport fully and
+        suppress page scrolling.
+    -->
+    <column id="fancy-div">
+        <column id="main">
+
+            <!--
+                Theme toggle row. Button click handler flips a host-side
+                flag and repaints the window's bg + every themed node.
+                Demonstrates runtime scene mutation from a handler.
+            -->
+            <row class="theme-row">
+                <label class="heading" text="Settings" />
+                <button id="theme-toggle" class="ghost" on_click="on_theme_toggle" text="Toggle theme" />
+            </row>
+
+            <!--
+                Hero card with every "effects" CSS property in one place:
+                  bg-gradient (horizontal indigo -> violet)
+                  box-shadow  (soft dark drop shadow)
+                  opacity     (slight transparency to show cascade)
+                  z-index     (sits on top of the accent bar below even
+                               though it comes FIRST in source order)
+                Content is alignment-centered both axes.
+            -->
+            <column class="hero-card">
+                <label class="hero-title"    text="pure C GUI toolkit" />
+                <label class="hero-subtitle" text="cross-platform, parser-driven, live hot-reloadable" />
+            </column>
+
+            <!--
+                Image widget showcase. `src` is resolved through fs__read_entire_file
+                so the same tag reads from demo-windows/ on the desktop build and
+                from assets/ on the Android APK build. stb_image decodes PNG/JPEG
+                into RGBA8 which the renderer uploads as a texture.
+            -->
+            <image src="flower.png" class="hero-image" />
+
+            <slider id="scale" min="0.5" max="2.5" value="1.0" on_change="on_scale_change" />
+
+            <div class="accent-bar" />
+
+            <label class="label" text="Your name" />
+            <input id="name" on_change="on_name_change" />
+
+            <column class="card">
+                <div class="card-strip-primary" />
+                <button class="primary" on_click="on_primary_click"  text="Save" />
+                <button class="primary" on_click="on_primary_click1" text="Save and close" />
+            </column>
+
+            <column class="card">
+                <div class="card-strip-ghost" />
+                <button class="ghost" on_click="on_secondary_click" text="Cancel" />
+                <button class="ghost" on_click="on_secondary_click" text="Reset" />
+            </column>
+
+            <!--
+                Scrollable div demo. The div has a fixed height (120px) that
+                is smaller than the total height of its children, so overflow-y
+                triggers an AUTO scrollbar. Drag the thumb on the right to
+                scroll through the list.
+            -->
+            <label class="label" text="Recent activity" />
+            <div class="scroll-list">
+                <label class="list-item" text="Build #1247 succeeded" />
+                <label class="list-item" text="Build #1246 succeeded" />
+                <label class="list-item" text="Build #1245 failed (tests)" />
+                <label class="list-item" text="Build #1244 succeeded" />
+                <label class="list-item" text="Build #1243 succeeded" />
+                <label class="list-item" text="Build #1242 succeeded" />
+                <label class="list-item" text="Build #1241 failed (lint)" />
+                <label class="list-item" text="Build #1240 succeeded" />
+                <label class="list-item" text="Build #1239 succeeded" />
+                <label class="list-item" text="Build #1238 succeeded" />
+                <label class="list-item" text="Build #1237 failed (flake)" />
+                <label class="list-item" text="Build #1236 succeeded" />
+            </div>
+
+            <!--
+                Typography showcase. Each line uses a different font
+                family / weight / size so the rendering pipeline (font
+                atlas + gamma + shader) can be judged against a variety
+                of glyph shapes. Stamps the differences between Roboto
+                weights, between sans and mono, and what the
+                pixel/game fonts look like at their native sizes.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Typography" />
+
+            <label class="type-display"      text="Quick Brown Fox" />
+            <label class="type-title"        text="The five boxing wizards jump quickly" />
+            <label class="type-subtitle"     text="Sphinx of black quartz, judge my vow" />
+            <label class="type-body"         text="Pack my box with five dozen liquor jugs -- body copy at 14 px Roboto-Regular." />
+            <label class="type-body-bold"    text="Pack my box with five dozen liquor jugs -- same copy at 14 px Roboto-Bold." />
+            <label class="type-body-light"   text="Pack my box with five dozen liquor jugs -- same copy at 14 px Roboto-Light." />
+            <label class="type-caption"      text="Karla-Regular 12 px - captions, hints, metadata labels." />
+            <label class="type-mono"         text="int main(void) { return 0xBEEF ^ 0xFACE; }" />
+            <label class="type-mono-small"   text="// ProggyClean 13 px - classic coder bitmap font" />
+            <label class="type-droidsans"    text="DroidSans 15 px - the Android system default" />
+            <label class="type-game"         text="LEVEL UP  +100 XP  kenvector_future 18 px" />
+            <label class="type-game-thin"    text="kenvector_future_thin 14 px -- same face, thinner strokes" />
+            <label class="type-specimen"     text="0123456789 !?@#$%&amp; THE QUICK brown fox" />
+
+            <!--
+                Proggy family showcase. ProggyClean + ProggyTiny are
+                bitmap-designed fonts drawn at their native sizes
+                (13 px and 10 px respectively). Every stem in the
+                design lands on an integer pixel column/row at those
+                sizes, so stb_truetype's unhinted rasterizer produces
+                near-binary output -- i.e. imgui's default "crisp"
+                look. Off-native sizes get interpolated between the
+                bitmap grid and look progressively softer. Seeing the
+                same font at 10 / 13 / 16 / 20 / 26 px side-by-side
+                makes it obvious where the bitmap design's sharpness
+                stops helping.
+            -->
+            <label class="type-subsection" text="Proggy bitmap family (pixel-perfect at native size):" />
+            <label class="type-proggy-10"  text="ProggyClean  10 px : smaller than native, slight shrink" />
+            <label class="type-proggy-13"  text="ProggyClean  13 px : NATIVE - every stem on the pixel grid" />
+            <label class="type-proggy-16"  text="ProggyClean  16 px : upscaled - notice the slight softness" />
+            <label class="type-proggy-20"  text="ProggyClean  20 px : more upscale, bitmap quirks showing" />
+            <label class="type-proggy-26"  text="ProggyClean  26 px : well past the design target" />
+            <label class="type-tiny-10"    text="ProggyTiny   10 px : NATIVE for the Tiny variant" />
+            <label class="type-tiny-12"    text="ProggyTiny   12 px : small upscale of the 10 px Tiny face" />
+
+            <div class="section-divider" />
+            <label class="section-heading" text="Color palette" />
+            <row class="swatch-row">
+                <div class="swatch swatch-red" />
+                <div class="swatch swatch-amber" />
+                <div class="swatch swatch-green" />
+                <div class="swatch swatch-cyan" />
+                <div class="swatch swatch-violet" />
+                <div class="swatch swatch-pink" />
+            </row>
+
+            <!--
+                Form controls section: checkbox, radio group, and a
+                drop-down select. All three are brand-new widgets.
+                See widget_checkbox.c / widget_radio.c / widget_select.c
+                for the implementations. The select's popup uses the
+                scene overlay mechanism so it paints above the metric
+                cards below.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Preferences" />
+
+            <row class="form-row">
+                <checkbox id="notify-tick"  class="check" value="1" />
+                <label class="form-label" text="Send me notifications" />
+            </row>
+            <row class="form-row">
+                <checkbox id="analytics-tick" class="check" />
+                <label class="form-label" text="Share anonymous usage data" />
+            </row>
+
+            <label class="label" text="Theme" />
+            <row class="form-row">
+                <radio id="theme-dark"   class="theme" value="1" />
+                <label class="form-label" text="Dark" />
+            </row>
+            <row class="form-row">
+                <radio id="theme-light"  class="theme" />
+                <label class="form-label" text="Light" />
+            </row>
+            <row class="form-row">
+                <radio id="theme-auto"   class="theme" />
+                <label class="form-label" text="System" />
+            </row>
+
+            <label class="label" text="Font size" />
+            <select id="font-size" class="dropdown">
+                <option text="Small" />
+                <option text="Medium" />
+                <option text="Large" />
+                <option text="Huge" />
+            </select>
+
+            <!--
+                Show / Hide demo. Each checkbox toggles either
+                display or visibility on a sibling panel below, and
+                the panel's :appear animation replays on every
+                hide->show flip (the animator resets appear_age_ms
+                when it detects the transition). Lets the user see
+                the two CSS-style properties behave exactly as in
+                the browser:
+                  - display:none removes the element from layout,
+                    so its neighbours collapse the gap.
+                  - visibility:hidden keeps the space but skips the
+                    paint, so neighbours stay put.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Show / Hide" />
+
+            <row class="form-row">
+                <checkbox id="toggle-display" class="check" value="1" on_change="on_toggle_display" />
+                <label class="form-label" text="Show the collapsing panel (display:none toggle)" />
+            </row>
+            <column id="collapsible-panel" class="demo-panel">
+                <label class="demo-panel-heading" text="Collapsing panel" />
+                <label class="demo-panel-body" text="display:none: I vanish from layout AND paint. Neighbours close the gap. My :appear animation replays every time I come back because the animator detects the hidden-&gt;visible transition and resets appear_age_ms." />
+            </column>
+
+            <row class="form-row">
+                <checkbox id="toggle-visibility" class="check" value="1" on_change="on_toggle_visibility" />
+                <label class="form-label" text="Show the dimming panel (visibility:hidden toggle)" />
+            </row>
+            <column id="dimming-panel" class="demo-panel">
+                <label class="demo-panel-heading" text="Dimming panel" />
+                <label class="demo-panel-body" text="visibility:hidden: I still occupy my layout bounds (siblings don't reflow) but emit_draws skips me entirely. Flip the checkbox off and you'll see the gap stay, just with nothing painted in it." />
+            </column>
+
+            <div class="section-divider" />
+            <label class="section-heading" text="System metrics" />
+            <column class="metric-card">
+                <label class="metric-label" text="CPU usage" />
+                <label class="metric-value" text="62%" />
+                <div class="metric-bar">
+                    <div class="metric-bar-fill-good" />
+                </div>
+            </column>
+            <column class="metric-card">
+                <label class="metric-label" text="Memory pressure" />
+                <label class="metric-value" text="41%" />
+                <div class="metric-bar">
+                    <div class="metric-bar-fill-warn" />
+                </div>
+            </column>
+            <column class="metric-card">
+                <label class="metric-label" text="Disk I/O" />
+                <label class="metric-value" text="OK" />
+                <div class="metric-bar">
+                    <div class="metric-bar-fill-good" />
+                </div>
+            </column>
+
+            <!--
+                Collection showcase. 8 launcher-style app tiles laid out
+                in a 4-column grid. Each tile is a <column> card holding
+                an <image> + label. item-width / item-height drive the
+                cell size; parent's `gap` sets spacing. Style `layout: grid`
+                + `columns: 4` comes from the .launcher-grid selector.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Launcher (collection widget)" />
+
+            <collection class="launcher-grid">
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-1jpex1.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Mail" />
+                </column>
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-2ekgrx.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Music" />
+                </column>
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-2ylwkm.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Photos" />
+                </column>
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-5wlmm9.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Calendar" />
+                </column>
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-6lqzw6.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Maps" />
+                </column>
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-83p2w1.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Weather" />
+                </column>
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-9578qw.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Notes" />
+                </column>
+                <column class="launcher-tile">
+                    <image src="wallpapers/wallhaven-gwwwoe.jpg" class="launcher-icon" />
+                    <label class="launcher-label" text="Files" />
+                </column>
+            </collection>
+
+            <!--
+                object-fit showcase. Four wallpapers side-by-side, each
+                drawn in a different fit mode so the eye can compare
+                stretch vs contain vs cover vs none on photo content.
+                Each cell is the same size; the only thing that differs
+                is the .fit-demo-* class's `object-fit`.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="object-fit modes" />
+
+            <row class="fit-row">
+                <column class="fit-cell">
+                    <label class="fit-caption" text="fill (stretch)" />
+                    <image src="wallpapers/hokkaido-japan.jpg" class="fit-demo-fill" />
+                </column>
+                <column class="fit-cell">
+                    <label class="fit-caption" text="contain (letterbox)" />
+                    <image src="wallpapers/wallhaven-kwd3pq.jpg" class="fit-demo-contain" />
+                </column>
+            </row>
+
+            <row class="fit-row">
+                <column class="fit-cell">
+                    <label class="fit-caption" text="cover (crop)" />
+                    <image src="wallpapers/wallhaven-l8m9jy.jpg" class="fit-demo-cover" />
+                </column>
+                <column class="fit-cell">
+                    <label class="fit-caption" text="none (native, centered)" />
+                    <image src="wallpapers/wallhaven-lm7d22.jpg" class="fit-demo-none" />
+                </column>
+            </row>
+
+            <!--
+                background-image showcase. Two divs painting wallpapers
+                as their OWN bg (not a child <image> node) via the
+                style's background-image + background-size properties.
+                Child text labels read on top of the image.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="background-image on a container" />
+
+            <div class="bg-cover-card">
+                <label class="bg-caption" text="cover -- fills the card, crops overflow" />
+            </div>
+            <div class="bg-contain-card">
+                <label class="bg-caption" text="contain -- whole image visible, letterboxed" />
+            </div>
+
+            <!--
+                Color picker showcase. Two variants side by side in a row.
+                Each fires on_change with the picked RGBA; the handler
+                logs it and mirrors it as the bg of the preview swatch.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Color picker" />
+
+            <label class="label" text="Horizontal (hue only)" />
+            <colorpicker id="hue-picker" class="picker-strip" type="horizontal" on_change="on_color_change" />
+
+            <label class="label" text="Classic (SV square + hue strip)" />
+            <colorpicker id="classic-picker" class="picker-classic" type="classic" on_change="on_color_change" />
+
+            <div id="color-preview" class="color-preview" />
+
+            <!--
+                Textarea + on-screen keyboard. Typing into the textarea
+                focuses it; on Android (or Windows with the toggle
+                below enabled) the virtual keyboard auto-shows. The
+                toggle button flips the enable flag so desktop users
+                can see the keyboard even with a real keyboard plugged
+                in.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Textarea + virtual keyboard" />
+
+            <textarea id="notes" class="notes-area" />
+
+            <row class="form-row">
+                <button id="vkb-toggle" class="ghost" on_click="on_toggle_vkb" text="Toggle virtual keyboard" />
+            </row>
+
+            <!--
+                Popups. Two buttons: one fires a simple OK popup (the
+                imperative API), the other fires a confirm yes/no popup
+                whose dismiss handler logs which choice was made.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Popups" />
+
+            <row class="form-row">
+                <button class="primary" on_click="on_popup_ok_click"      text="Show OK popup" />
+                <button class="ghost"   on_click="on_popup_confirm_click" text="Ask confirmation" />
+            </row>
+
+            <!--
+                Canvas. Drag on the surface to draw a freehand line;
+                the handler routes pointer deltas through
+                canvas__stroke_line. The clear button wipes to the
+                styled bg.
+            -->
+            <div class="section-divider" />
+            <label class="section-heading" text="Canvas (drag to draw)" />
+
+            <canvas id="paint" class="paint-canvas" width="512" height="260" on_change="on_canvas_paint" />
+
+            <row class="form-row">
+                <button class="ghost" on_click="on_canvas_clear" text="Clear canvas" />
+            </row>
+
+        </column>
+    </column>
+
+</window>
